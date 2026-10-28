@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kunlik ishlar jadvali</title>
+<style>
+:root{--bg:#f2f6f7;--card:#fff;--ink:#12232e;--mute:#5d707c;--line:#d9e3e7;--ok:#1b8a6b;--no:#d4474f;--wait:#9aa9b2;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1a20;--card:#16262e;--ink:#e8f0f3;--mute:#93a6b0;--line:#27404b;--ok:#3cc19c;--no:#f0757c;--wait:#5d7380;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1a20;--card:#16262e;--ink:#e8f0f3;--mute:#93a6b0;--line:#27404b;--ok:#3cc19c;--no:#f0757c;--wait:#5d7380;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:900px;margin:0 auto;padding:28px 16px 48px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:22px}
+h1{font-size:clamp(26px,5vw,38px);margin:0;letter-spacing:-.02em;line-height:1.15}
+.sub{color:var(--mute);margin:2px 0 0;font-size:15px}
+.nav{display:flex;gap:8px}
+.grid{display:grid;grid-template-columns:280px 1fr;gap:16px;align-items:start}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.chart{text-align:center}
+.chart svg{width:100%;max-width:220px}
+.pct{font-size:40px;font-weight:800;fill:var(--ink)}
+.lbl{font-size:12px;fill:var(--mute)}
+.legend{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:14px;color:var(--mute)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:480px}
+th{text-align:left;font-size:13px;color:var(--mute);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:6px 8px;border-bottom:1px solid var(--line)}
+input[type=text],input[type=time]{width:100%;font:inherit;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:8px;padding:6px 8px}
+input[type=time]{width:122px}
+input[type=text]:hover,input[type=time]:hover{border-color:var(--line)}
+input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--ok);background:var(--bg)}
+.st{font:inherit;font-weight:700;border:0;border-radius:99px;padding:6px 14px;color:#fff;cursor:pointer;min-width:122px}
+.st:focus-visible,.btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.st.ok{background:var(--ok)}.st.no{background:var(--no)}.st.wait{background:var(--wait)}
+.x{background:none;border:0;color:var(--mute);cursor:pointer;font-size:18px;padding:4px 8px}
+.row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 14px;cursor:pointer}
+.hint{color:var(--mute);font-size:13px;margin-top:10px}
+.empty{color:var(--mute);padding:18px 8px;text-align:center}
+#alert{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:20;background:var(--ok);color:#fff;padding:12px 16px;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;font-weight:600}
+#alert[hidden]{display:none}
+</style>
+</head>
+<body>
+<div id="alert" role="alert" hidden></div>
+<main>
+  <div class="top">
+    <div>
+      <h1 id="date">Bugun</h1>
+      <p class="sub" id="wd"></p>
+    </div>
+    <div class="nav">
+      <button class="btn" id="prev" aria-label="Oldingi kun">‹ Oldingi</button>
+      <button class="btn" id="today">Bugun</button>
+      <button class="btn" id="next" aria-label="Keyingi kun">Keyingi ›</button>
+      <button class="btn" id="bell">🔕 Bildirishnomani yoqish</button>
+    </div>
+  </div>
+  <div class="grid">
+    <section class="card chart" aria-label="Bajarilish diagrammasi">
+      <svg viewBox="0 0 200 200" role="img" aria-label="Bajarilgan ishlar foizi">
+        <circle cx="100" cy="100" r="80" fill="none" stroke="var(--line)" stroke-width="26"/>
+        <g id="arcs" transform="rotate(-90 100 100)"></g>
+        <text id="pct" class="pct" x="100" y="108" text-anchor="middle">0%</text>
+        <text class="lbl" x="100" y="128" text-anchor="middle">bajarildi</text>
+      </svg>
+      <div class="legend">
+        <span><i style="background:var(--ok)"></i>Bajarildi <b id="cOk">0</b></span>
+        <span><i style="background:var(--no)"></i>Bajarilmadi <b id="cNo">0</b></span>
+        <span><i style="background:var(--wait)"></i>Kutilmoqda <b id="cW">0</b></span>
+      </div>
+    </section>
+    <section class="card">
+      <div class="wrap">
+        <table>
+          <thead><tr><th>Soat</th><th>Qaysi ish</th><th>Holat</th><th></th></tr></thead>
+          <tbody id="tb"></tbody>
+        </table>
+      </div>
+      <div class="row">
+        <button class="btn" id="add">+ Ish qoʻshish</button>
+        <button class="btn" id="reset">Kunni tozalash</button>
+      </div>
+      <p class="hint">Holat tugmasini bosing: Kutilmoqda → Bajarildi → Bajarilmadi. Har kunning ishlari alohida saqlanadi.</p>
+    </section>
+  </div>
+</main>
+<script>
+var order=["wait","ok","no"],names={ok:"Bajarildi",no:"Bajarilmadi",wait:"Kutilmoqda"};
+var months=["yanvar","fevral","mart","aprel","may","iyun","iyul","avgust","sentyabr","oktyabr","noyabr","dekabr"];
+var wdays=["yakshanba","dushanba","seshanba","chorshanba","payshanba","juma","shanba"];
+var cur=new Date();cur.setHours(12,0,0,0);
+var rows=[];
+function key(){var d=cur;return "kunlik-"+d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+function load(){var r=null;try{r=JSON.parse(localStorage.getItem(key())||"null")}catch(e){}
+  rows=Array.isArray(r)?r:[]}
+function save(){try{localStorage.setItem(key(),JSON.stringify(rows))}catch(e){}}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;")}
+var tb=document.getElementById("tb");
+function head(){
+  document.getElementById("date").textContent=cur.getDate()+"-"+months[cur.getMonth()]+", "+cur.getFullYear();
+  var t=new Date();t.setHours(12,0,0,0);
+  var diff=Math.round((cur-t)/864e5);
+  var extra=diff==0?" · bugun":diff==-1?" · kecha":diff==1?" · ertaga":"";
+  document.getElementById("wd").textContent=wdays[cur.getDay()].charAt(0).toUpperCase()+wdays[cur.getDay()].slice(1)+extra;
+}
+function render(){
+  head();
+  tb.innerHTML=rows.length?rows.map(function(r,i){
+    return '<tr><td><input type="time" data-i="'+i+'" data-f="v" value="'+esc(r.v||"")+'" aria-label="Soat"></td>'+
+    '<td><input type="text" data-i="'+i+'" data-f="t" value="'+esc(r.t)+'" placeholder="Ish nomi" aria-label="Qaysi ish"></td>'+
+    '<td><button class="st '+r.s+'" data-i="'+i+'">'+names[r.s]+'</button></td>'+
+    '<td><button class="x" data-del="'+i+'" aria-label="Oʻchirish">×</button></td></tr>';
+  }).join(""):'<tr><td colspan="4" class="empty">Bu kunga ish yoʻq. “Ish qoʻshish” tugmasini bosing.</td></tr>';
+  chart();
+}
+function chart(){
+  var n=rows.length,c={ok:0,no:0,wait:0};
+  rows.forEach(function(r){c[r.s]++});
+  document.getElementById("pct").textContent=(n?Math.round(c.ok/n*100):0)+"%";
+  document.getElementById("cOk").textContent=c.ok;
+  document.getElementById("cNo").textContent=c.no;
+  document.getElementById("cW").textContent=c.wait;
+  var C=2*Math.PI*80,off=0,svg="";
+  [["ok","var(--ok)"],["no","var(--no)"],["wait","var(--wait)"]].forEach(function(k){
+    var len=n?c[k[0]]/n*C:0;
+    if(len>0)svg+='<circle cx="100" cy="100" r="80" fill="none" stroke="'+k[1]+'" stroke-width="26" stroke-dasharray="'+len+' '+(C-len)+'" stroke-dashoffset="'+(-off)+'"/>';
+    off+=len;
+  });
+  document.getElementById("arcs").innerHTML=svg;
+}
+tb.addEventListener("input",function(e){var t=e.target;if(t.dataset.f){rows[t.dataset.i][t.dataset.f]=t.value;save()}});
+tb.addEventListener("change",function(e){var t=e.target;if(t.dataset.f=="v"){
+  rows.sort(function(a,b){return (a.v||"99:99")<(b.v||"99:99")?-1:(a.v||"99:99")>(b.v||"99:99")?1:0});save();render()}});
+tb.addEventListener("click",function(e){
+  var t=e.target;
+  if(t.classList.contains("st")){var r=rows[t.dataset.i];r.s=order[(order.indexOf(r.s)+1)%3];save();render()}
+  else if(t.dataset.del!==undefined){rows.splice(+t.dataset.del,1);save();render()}
+});
+document.getElementById("add").onclick=function(){rows.push({v:"",t:"",s:"wait"});save();render()};
+document.getElementById("reset").onclick=function(){rows=[];save();render()};
+function go(n){cur.setDate(cur.getDate()+n);load();render()}
+document.getElementById("prev").onclick=function(){go(-1)};
+document.getElementById("next").onclick=function(){go(1)};
+document.getElementById("today").onclick=function(){cur=new Date();cur.setHours(12,0,0,0);load();render()};
+load();
+if(!rows.length&&!(function(){try{return localStorage.getItem(key())}catch(e){return null}})()){
+  rows=[{v:"07:00",t:"Kitob oʻqish",s:"wait"},{v:"18:00",t:"Sport qilish",s:"wait"},{v:"20:00",t:"Ingliz tili",s:"wait"}];save();
+}
+render();
+
+var ctx=null,fired={},on=false,bell=document.getElementById("bell");
+function keyFor(d){return "kunlik-"+d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
+function beep(){try{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();
+  [0,.3,.6].forEach(function(t){var o=ctx.createOscillator(),g=ctx.createGain(),s=ctx.currentTime+t;o.frequency.value=880;o.connect(g);g.connect(ctx.destination);g.gain.setValueAtTime(.25,s);g.gain.exponentialRampToValueAtTime(.001,s+.22);o.start(s);o.stop(s+.22)})}catch(e){}}
+function bellLabel(){bell.textContent=on?"🔔 Bildirishnoma yoniq":"🔕 Bildirishnomani yoqish"}
+bell.onclick=function(){
+  on=!on;
+  if(on){beep();try{if(window.Notification&&Notification.permission=="default")Notification.requestPermission()}catch(e){}}
+  bellLabel();
+};
+function todayList(){var n=new Date();if(n.toDateString()==cur.toDateString())return rows;
+  try{return JSON.parse(localStorage.getItem(keyFor(n))||"[]")}catch(e){return[]}}
+function notify(r){
+  var msg=r.v+" — "+(r.t||"ish vaqti keldi");
+  var a=document.getElementById("alert");
+  a.innerHTML='<span>⏰ Vaqt keldi: '+esc(msg)+'</span><button class="btn" id="ac">Yopish</button>';
+  a.hidden=false;
+  document.getElementById("ac").onclick=function(){a.hidden=true};
+  beep();
+  try{if(window.Notification&&Notification.permission=="granted")new Notification("Vaqt keldi",{body:msg})}catch(e){}
+  var t0=document.title;document.title="⏰ "+msg;setTimeout(function(){document.title=t0},15000);
+}
+function tick(){
+  if(!on)return;
+  var n=new Date(),nm=n.getHours()*60+n.getMinutes();
+  todayList().forEach(function(r){
+    if(!r.v||r.s!="wait")return;
+    var p=r.v.split(":"),m=+p[0]*60+ +p[1],id=keyFor(n)+r.v+r.t;
+    if(nm>=m&&nm-m<=1&&!fired[id]){fired[id]=1;notify(r)}
+  });
+}
+setInterval(tick,15000);
+</script>
+</body>
+</html>
